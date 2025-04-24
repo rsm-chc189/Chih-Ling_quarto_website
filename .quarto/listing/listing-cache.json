@@ -1,0 +1,16 @@
+{
+  "listingMap": {
+    "projects/project2/index.qmd": [
+      "projects"
+    ],
+    "projects/project1/index.qmd": [
+      "projects"
+    ],
+    "projects.qmd": [
+      "projects"
+    ],
+    "projects/HW1/index.qmd": [
+      "projects"
+    ]
+  }
+}

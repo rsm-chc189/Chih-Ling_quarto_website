@@ -1,0 +1,13 @@
+---
+title: "Chih-Ling(Lynn) Chang"
+image: files/portrait.jpg
+about:
+    template: jolla
+    links: 
+        - icon: envelope
+          href: mailto:chc189@ucsd.edu
+        - icon: linkedin
+          href: https://www.linkedin.com/in/-chihling-chang/
+---
+
+Welcome to my website !
