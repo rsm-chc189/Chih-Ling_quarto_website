@@ -1,0 +1,670 @@
+---
+title: "Poisson Regression Examples"
+author: "Chih-Ling Chang"
+date: today
+callout-appearance: minimal # this hides the blue "i" icon on .callout-notes
+---
+
+
+## Blueprinty Case Study
+
+### Introduction
+
+Blueprinty is a small firm that makes software for developing blueprints specifically for submitting patent applications to the US patent office. Their marketing team would like to make the claim that patent applicants using Blueprinty's software are more successful in getting their patent applications approved. Ideal data to study such an effect might include the success rate of patent applications before using Blueprinty's software and after using it. Unfortunately, such data is not available. 
+
+However, Blueprinty has collected data on 1,500 mature (non-startup) engineering firms. The data include each firm's number of patents awarded over the last 5 years, regional location, age since incorporation, and whether or not the firm uses Blueprinty's software. The marketing team would like to use this data to make the claim that firms using Blueprinty's software are more successful in getting their patent applications approved.
+
+
+### Data Summary
+
+```{python}
+#| echo: false
+#| warning: false
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+
+blueprinty = pd.read_csv('blueprinty.csv')
+```
+
+Comparison of histograms and means of number of patents by customer status
+```{python}
+#| echo: false
+#| warning: false
+
+# Calculate the mean of patents by customer status
+mean_patents_iscus = blueprinty.groupby('iscustomer')['patents'].mean()
+patents_iscus = blueprinty.groupby('iscustomer')['patents'].sum()
+
+# Plot the bar chart for the count of patents
+fig, ax1 = plt.subplots()
+
+patents_iscus.plot(kind='bar', color='lightblue', ax=ax1, label='Number of Patents')
+ax1.set_title('Patents by Customer Status')
+ax1.set_xlabel('Customer Status')
+ax1.set_ylabel('Number of Patents')
+ax1.set_xticks([0, 1])
+ax1.set_xticklabels(['Non-Customer', 'Customer'], rotation=0)
+ax1.legend(loc='upper right', bbox_to_anchor=(1, 1))
+
+# Plot the line chart for the mean of patents
+ax2 = ax1.twinx()
+mean_patents_iscus.plot(kind='line', color='orange', marker='o', ax=ax2, label='Mean of Patents')
+ax2.set_ylim(0, 6)
+ax2.set_ylabel('Mean of Patents')
+ax2.legend(loc='upper right', bbox_to_anchor=(1, 0.9))
+
+# Add data labels to the bars
+for i in range(len(patents_iscus)):
+    plt.text(i, patents_iscus[i]*0.0016, f"{patents_iscus[i]}", ha='center', va='bottom')
+for j in range(len(mean_patents_iscus)):
+    plt.text(j, mean_patents_iscus[j]+0.1, f"{round(mean_patents_iscus[j],2)}", ha='center', va='bottom')
+plt.show()
+
+```
+- Customers of Blueprinty have fewer firms overall but a higher average number of patents. 
+- On average, customers have 4.13 patents compared to 3.47 for non-customers.
+
+Blueprinty customers are not selected at random. It may be important to account for systematic differences in the age and regional location of customers vs non-customers.
+
+Comparison of regions and ages by customer status
+```{python}
+#| echo: false
+#| warning: false
+
+pastel_colors = ['#A6CEE3', '#FDBF6F', '#B2DF8A', '#FB9A99', '#CAB2D6']
+region_iscus = blueprinty.groupby('iscustomer')['region'].value_counts().unstack()
+region_iscus.plot(kind='bar', stacked=True, color=pastel_colors)
+plt.title('Region Distribution by Customer Status')
+plt.xlabel('Customer Status')
+plt.ylabel('Count by Regions')
+plt.xticks([0, 1], ['Non-Customer', 'Customer'], rotation=0)
+plt.legend(title='Region', bbox_to_anchor=(1, 1))
+
+# Add data labels to the middle of the bars
+for i in range(len(region_iscus)):
+    cumulative_height = 0
+    for j in range(len(region_iscus.columns)):
+        height = region_iscus.iloc[i, j]
+        if height > 0:
+            plt.text(i, cumulative_height + height / 2, f"{height}", ha='center', va='center')
+        cumulative_height += height
+
+plt.tight_layout()
+plt.show()
+```
+- Most customers come from the Northeast region, while non-customers are more evenly distributed across all regions. 
+- The Midwest, South, and Southwest regions are underrepresented among Blueprinty customers compared to non-customers.
+
+```{python}
+#| echo: false
+#| warning: false
+# Create bins for ten-year age intervals
+
+bins = range(0, int(blueprinty['age'].max()) + 10, 10)
+labels = [f"{i}-{i+9}" for i in bins[:-1]]
+
+# Add a new column for age groups
+blueprinty['age_group'] = pd.cut(blueprinty['age'], bins=bins, labels=labels, right=False)
+
+# Regroup the data by age groups and customer status
+pastel_colors = ['#A6CEE3', '#FDBF6F', '#B2DF8A', '#FB9A99', '#CAB2D6']
+age_group_iscus = blueprinty.groupby(['iscustomer', 'age_group'])['age'].count().unstack()
+age_group_iscus.plot(kind='bar', stacked=True, color=pastel_colors)
+plt.title('Age Distribution by Customer Status')
+plt.xlabel('Customer Status')
+plt.ylabel('Count by Age Groups')
+plt.xticks([0, 1], ['Non-Customer', 'Customer'], rotation=0)
+plt.legend(title='Age Group', bbox_to_anchor=(1, 1))
+# Add data labels to the middle of the bars 
+for i in range(len(age_group_iscus)):
+    cumulative_height = 0
+    for j in range(len(age_group_iscus.columns)):
+        height = age_group_iscus.iloc[i, j]
+        if height > 0:
+            plt.text(i, cumulative_height + height / 2, f"{height}", ha='center', va='center')
+        cumulative_height += height
+plt.tight_layout()
+
+```
+- Both customers and non-customers are concentrated in the 20–39 age range, but non-customers tend to be slightly younger overall. 
+- The youngest group (ages 0–9) is almost exclusively non-customers, while customers have a relatively higher proportion in the 30–49 range.
+
+
+### Estimation of Simple Poisson Model
+
+Since our outcome variable of interest can only be small integer values per a set unit of time, we can use a Poisson density to model the number of patents awarded to each engineering firm over the last 5 years. We start by estimating a simple Poisson model via Maximum Likelihood.
+
+The mathematical likelihood for_ $Y \sim \text{Poisson}(\lambda)$. Note that $f(Y|\lambda) = e^{-\lambda}\lambda^Y/Y!$.
+
+$$
+\log L(\lambda) = \sum_{i=1}^{n} \left( -\lambda + Y_i \log(\lambda) - \log(Y_i!) \right)
+$$
+
+Code the likelihood (or log-likelihood) function for the Poisson model. This is a function of lambda and Y. For example:
+```{python}
+import numpy as np
+import pandas as pd
+from scipy.special import gammaln
+
+# target variable
+Y_data = blueprinty['patents'].values  
+
+# define the Poisson log-likelihood function
+def poisson_loglikelihood(lmbda, Y):
+    Y = np.array(Y)
+    return np.sum(Y * np.log(lmbda) - lmbda - gammaln(Y + 1))
+
+# test example
+print("log-likelihood at λ=3.0:", poisson_loglikelihood(3.0, Y_data))
+
+```
+
+
+Use my function to plot lambda on the horizontal axis and the likelihood (or log-likelihood) on the vertical axis for a range of lambdas (use the observed number of patents as the input for Y)._
+```{python}
+import matplotlib.pyplot as plt
+
+# Create a range of lambda values
+lambda_range = np.linspace(0.1, 10, 300)
+
+# Compute log-likelihood for each lambda
+loglik_values = [poisson_loglikelihood(lmb, Y_data) for lmb in lambda_range]
+
+# Find the lambda that gives the maximum log-likelihood
+lambda_mle_empirical = lambda_range[np.argmax(loglik_values)]
+
+# Plot the curve
+plt.figure(figsize=(8, 5))
+plt.plot(lambda_range, loglik_values, label="Log-Likelihood Curve")
+plt.axvline(lambda_mle_empirical, color="red", linestyle="--", label=f"Empirical Max λ ≈ {lambda_mle_empirical:.2f}")
+plt.xlabel("Lambda (λ)")
+plt.ylabel("Log-Likelihood")
+plt.title("Poisson Log-Likelihood Curve")
+plt.legend()
+plt.grid(True)
+plt.tight_layout()
+plt.show()
+```
+
+
+Take the first derivative of your likelihood or log-likelihood, set it equal to zero and solve for lambda. We find lambda_mle is Ybar, which "feels right" because the mean of a Poisson distribution is lambda.
+```{python}
+# Compute theoretical MLE as the sample mean
+lambda_mle_theory = np.mean(Y_data)
+print(f"Theoretical MLE λ = mean(Y) = {lambda_mle_theory:.4f}")
+```
+
+
+Find the MLE by optimizing my likelihood function with sp.optimize() in Python.
+```{python}
+from scipy.optimize import minimize_scalar
+
+# Find λ that maximizes the log-likelihood using numerical optimization
+result = minimize_scalar(
+    lambda lmb: -poisson_loglikelihood(lmb, Y_data),  # we minimize the negative log-likelihood
+    bounds=(0.01, 20),
+    method="bounded"
+)
+
+lambda_mle_optimized = result.x
+print(f"Optimized MLE λ = {lambda_mle_optimized:.4f}")
+```
+
+### Estimation of Poisson Regression Model
+
+Next, we extend our simple Poisson model to a Poisson Regression Model such that $Y_i = \text{Poisson}(\lambda_i)$ where $\lambda_i = \exp(X_i'\beta)$. The interpretation is that the success rate of patent awards is not constant across all firms ($\lambda$) but rather is a function of firm characteristics $X_i$. Specifically, we will use the covariates age, age squared, region, and whether the firm is a customer of Blueprinty.
+
+Update my likelihood or log-likelihood function with an additional argument to take in a covariate matrix X. Also change the parameter of the model from lambda to the beta vector. In this model, lambda must be a positive number, so we choose the inverse link function g_inv() to be exp() so that_ $\lambda_i = e^{X_i'\beta}$. _For example:
+
+
+```{python}
+#| echo: false
+#| warning: false
+import numpy as np
+import pandas as pd
+from scipy.special import gammaln
+from scipy.optimize import minimize
+import patsy
+
+
+# Add age_squared feature
+
+blueprinty["age_squared"] = blueprinty["age"] ** 2
+
+# Construct model matrix X using patsy (includes intercept automatically)
+y_data, X_design = patsy.dmatrices(
+    'patents ~ age + age_squared + C(region) + iscustomer',
+    data=blueprinty,
+    return_type='dataframe'
+)
+
+# Extract matrix and response
+X = np.asarray(X_design)
+Y = blueprinty["patents"].values
+param_names = X_design.design_info.column_names
+```
+
+```{python}
+# Define Poisson log-likelihood function with stable exp()
+def poisson_regression_loglik(beta, Y, X):
+    lin_pred = X @ beta
+    lin_pred = np.clip(lin_pred, -20, 20)  # numerical stability
+    lambda_i = np.exp(lin_pred)
+    return -np.sum(Y * lin_pred - lambda_i - gammaln(Y + 1))
+```
+
+Use my function along with Python's sp.optimize() to find the MLE vector and the Hessian of the Poisson model with covariates. Specifically, the first column of X should be all 1's to enable a constant term in the model, and the subsequent columns should be age, age squared, binary variables for all but one of the regions, and the binary customer variable. Use the Hessian to find standard errors of the beta parameter estimates and present a table of coefficients and standard errors.
+```{python}
+# Initial guess (zeros)
+beta_init = np.zeros(X.shape[1])
+
+# Minimize negative log-likelihood
+result = minimize(
+    poisson_regression_loglik,
+    beta_init,
+    args=(Y, X),
+    method='BFGS',
+    options={'disp': True}
+)
+
+# Extract coefficients
+beta_mle = result.x
+
+# Compute standard errors from inverse Hessian
+hessian_inv = result.hess_inv
+standard_errors = np.sqrt(np.diag(hessian_inv))
+
+# Format output as DataFrame
+regression_result = pd.DataFrame({
+    'Coefficient': beta_mle,
+    'Std. Error': standard_errors
+}, index=param_names)
+
+print(regression_result)
+
+```
+
+
+Check my results using Python sm.GLM() function.
+```{python}
+import statsmodels.api as sm
+
+# Fit Poisson regression using statsmodels GLM
+glm_poisson = sm.GLM(Y, X, family=sm.families.Poisson())
+glm_results = glm_poisson.fit()
+
+# Display regression summary (coefficients, standard errors, z-scores)
+print(glm_results.summary())
+```
+
+
+### Key Variable Interpretations:
+
+1. **iscustomer** (whether the firm uses Blueprinty software):
+- Coefficient: +0.208
+- P-value < 0.001 → statistically significant
+- In a Poisson regression, this means the expected patent count for users is:
+$e^{0.208} \approx 1.23$ 
+
+    This implies that firms using Blueprinty software have, on average, 23% more patents than those who do not.  
+
+
+2. **age and age_squared:**
+- age: +0.149 → older firms tend to have more patents
+- age_squared: -0.003 → diminishing returns, the effect of age decreases as firms get older
+
+    This suggests that patent counts increase with firm age, but at a decreasing rate.
+
+
+
+3. **region:**
+- Region dummy variables show only minor differences compared to the baseline (Midwest)
+- Most region effects are not statistically significant, acting as control variables
+
+
+
+### Summary:
+- There is a significant positive association between using Blueprinty software and higher patent counts.
+- Age is a meaningful predictor with diminishing marginal effects.
+- Regional differences are minor and do not substantially influence model predictions.
+
+
+Because the beta coefficients are not directly interpretable, it may help to create two fake datasets: X_0 and X_1 where X_0 is the X data but with iscustomer=0 for every observation and X_1 is the X data but with iscustomer=1 for every observation. Then, use X_0 and my fitted model to get the vector of predicted number of patents (y_pred_0) for every firm in the dataset, and use X_1 to get Y_pred_1 for every firm. Then subtract y_pred_1 minus y_pred_0 and take the average of that vector of differences.
+```{python}
+# Copy design matrix
+X_0 = X.copy()
+X_1 = X.copy()
+
+# Find column index of "iscustomer"
+iscust_idx = X_design.design_info.column_names.index("iscustomer")
+
+# Simulate everyone as non-customer (0)
+X_0[:, iscust_idx] = 0
+
+# Simulate everyone as customer (1)
+X_1[:, iscust_idx] = 1
+
+# Predict expected patent counts for both cases
+y_pred_0 = glm_results.predict(X_0)
+y_pred_1 = glm_results.predict(X_1)
+
+# Compute average treatment effect
+average_treatment_effect = np.mean(y_pred_1 - y_pred_0)
+print(f"Average treatment effect of Blueprinty software: {average_treatment_effect:.4f}")
+
+```
+
+
+
+## AirBnB Case Study
+
+### Introduction
+
+AirBnB is a popular platform for booking short-term rentals. In March 2017, students Annika Awad, Evan Lebo, and Anna Linden scraped of 40,000 Airbnb listings from New York City.  The data include the following variables:
+
+:::: {.callout-note collapse="true"}
+### Variable Definitions
+
+    - `id` = unique ID number for each unit
+    - `last_scraped` = date when information scraped
+    - `host_since` = date when host first listed the unit on Airbnb
+    - `days` = `last_scraped` - `host_since` = number of days the unit has been listed
+    - `room_type` = Entire home/apt., Private room, or Shared room
+    - `bathrooms` = number of bathrooms
+    - `bedrooms` = number of bedrooms
+    - `price` = price per night (dollars)
+    - `number_of_reviews` = number of reviews for the unit on Airbnb
+    - `review_scores_cleanliness` = a cleanliness score from reviews (1-10)
+    - `review_scores_location` = a "quality of location" score from reviews (1-10)
+    - `review_scores_value` = a "quality of value" score from reviews (1-10)
+    - `instant_bookable` = "t" if instantly bookable, "f" if not
+
+::::
+
+### Explorary Data Analysis
+```{python}
+#| echo: false
+#| warning: false
+airbnb = pd.read_csv('airbnb.csv')
+```
+
+```{python}
+airbnb.info()
+airbnb.describe()
+```
+
+#### Variables Distribution
+```{python}
+#| echo: false
+#| warning: false
+room_type = airbnb["room_type"].value_counts()
+room_type.plot(kind='bar', color='#B2DF8A')
+plt.title('Room Type Distribution')
+plt.xlabel('Room Type')
+plt.ylabel('Count')
+plt.xticks(rotation=0)
+for i in range(len(room_type)):
+    plt.text(i, room_type[i], f"{room_type[i]}", ha='center', va='bottom')
+plt.tight_layout()
+plt.show()
+```
+- The majority of listings are either entire homes/apartments or private rooms, with nearly equal counts. 
+- Shared rooms are much less common, accounting for only a small fraction of the total listings.
+
+```{python}
+#| echo: false
+#| warning: false
+dbathroom = airbnb["bathrooms"].value_counts().sort_index()
+dbathroom.plot(kind='bar', color='#B2DF8A')
+plt.title('Bathroom Distribution')
+plt.xlabel('Bathroom')
+plt.ylabel('Count')
+plt.xticks(rotation=0)
+for i, (x, y) in enumerate(zip(dbathroom.index, dbathroom.values)):
+    plt.text(i, y, f"{y}", ha='center', va='bottom', fontsize=8)
+plt.show()
+```
+- The vast majority of listings have exactly one bathroom, with over 34,000 such cases.
+- Listings with more than two bathrooms are rare, and those with zero or fractional bathrooms also occur infrequently.
+
+```{python}
+#| echo: false
+#| warning: false
+dbedroom = airbnb["bedrooms"].value_counts().sort_index()
+dbedroom.plot(kind='bar', color='#B2DF8A')
+plt.title('Bedroom Distribution')
+plt.xlabel('Bedroom')
+plt.ylabel('Count')
+plt.xticks(rotation=0)
+
+# Add data labels aligned with the top of the bars
+for i, (x, y) in enumerate(zip(dbedroom.index, dbedroom.values)):
+    plt.text(i, y, f"{y}", ha='center', va='bottom', fontsize=8)
+
+plt.show()
+```
+- The majority of listings have exactly one bedroom, with over 30,000 such entries.
+- Listings with three or more bedrooms are relatively rare, and those with zero bedrooms likely represent studio or shared space accommodations.
+
+```{python}
+#| echo: false
+#| warning: false
+d_cleanliness = airbnb["review_scores_cleanliness"].value_counts().sort_index()
+d_cleanliness.plot(kind='bar', color='#B2DF8A')
+plt.title('Cleanliness Distribution')
+plt.xlabel('Cleanliness')
+plt.ylabel('Count')
+plt.xticks(rotation=0)
+for i, (x, y) in enumerate(zip(d_cleanliness.index, d_cleanliness.values)):
+    plt.text(i, y, f"{y}", ha='center', va='bottom', fontsize=8)
+plt.show()
+```
+- Most listings have high cleanliness scores, with the majority rated 9 or 10.
+- Very few listings fall below a cleanliness score of 6, indicating generally high standards across the dataset.
+
+```{python}
+#| echo: false
+#| warning: false
+d_location = airbnb["review_scores_location"].value_counts().sort_index()
+d_location.plot(kind='bar', color='#B2DF8A')
+plt.title('Location Distribution')
+plt.xlabel('Location')
+plt.ylabel('Count')
+plt.xticks(rotation=0)
+for i, (x, y) in enumerate(zip(d_location.index, d_location.values)):
+    plt.text(i, y, f"{y}", ha='center', va='bottom', fontsize=8)   
+plt.show()
+```
+- Locaion share similar trend with cleanliness. The vast majority of listings have high location ratings, with most scoring 9 or 10.
+- Listings rated below 7 are very rare, indicating that location is generally perceived positively across the dataset.
+
+```{python}
+#| echo: false
+#| warning: false
+d_value = airbnb["review_scores_value"].value_counts().sort_index()
+d_value.plot(kind='bar', color='#B2DF8A')
+plt.title('Value Distribution')
+plt.xlabel('Value')
+plt.ylabel('Count')
+plt.xticks(rotation=0)
+# Add data labels aligned with the top of the bars
+for i, (x, y) in enumerate(zip(d_value.index, d_value.values)):
+    plt.text(i, y, f"{y}", ha='center', va='bottom', fontsize=8)
+plt.show()
+```
+- Value also share similar trend with location and cleanliness. Most of the listings have high value score, with the majority scoring 9 or 10.
+- Listings rated below 7 are very rare, indicating that value is generally perceived positively across the dataset.
+
+```{python}
+#| echo: false
+#| warning: false
+price = airbnb["price"].value_counts().sort_index()
+price.plot(kind='line', color='#B2DF8A')
+plt.title('Price Distribution')
+plt.xlabel('Price')
+plt.ylabel('Count')
+plt.xticks(rotation=0)
+plt.show()
+```
+- The price distribution is highly right-skewed, with most listings priced under $1,000.
+- A small number of listings have extremely high prices, creating a long tail on the higher end of the distribution.
+
+
+#### Price Distribution by Different Variables
+```{python}
+#| echo: false
+#| warning: false
+rtype_price = airbnb.groupby('room_type')['price'].mean()
+rtype_price.plot(kind='bar', color='lightblue')
+plt.title('Average Price by Room Type')
+plt.xlabel('Room Type')
+plt.ylabel('Average Price')
+plt.xticks(rotation=0)
+for i in range(len(rtype_price)):
+    plt.text(i, rtype_price[i] , f"{round(rtype_price[i], 2)}", ha='center', va='bottom')
+plt.tight_layout()
+plt.show()
+```
+- Entire home/apartment listings have the highest average price at around $205.
+- Private rooms and shared rooms are significantly more affordable, with average prices of approximately $87 and $78 respectively.
+
+```{python}
+#| echo: false
+#| warning: false
+bathrooms_price = airbnb.groupby('bathrooms')['price'].mean()
+bathrooms_price.plot(kind='bar', color='lightblue')
+plt.title('Average Price by Number of Bathrooms')
+plt.xlabel('Number of Bathrooms')
+plt.ylabel('Average Price')
+plt.xticks(rotation=0)
+plt.tight_layout()
+plt.show()
+```
+- Average price tends to increase with the number of bathrooms, showing a clear upward trend.
+- Listings with 6 or more bathrooms are priced significantly higher, with some reaching over $5,000 on average.
+
+```{python}
+#| echo: false
+#| warning: false
+bedrooms_price = airbnb.groupby('bedrooms')['price'].mean()
+bedrooms_price.plot(kind='bar', color='lightblue')
+plt.title('Average Price by Number of Bedrooms')
+plt.xlabel('Number of Bedrooms')
+plt.ylabel('Average Price')
+plt.xticks(rotation=0)
+plt.tight_layout()
+```
+- Average price generally increases with the number of bedrooms, peaking at 8 bedrooms with an average price around $1,200.
+- After 8 bedrooms, the average price fluctuates and slightly declines, possibly due to fewer listings or outliers in those categories.
+
+
+```{python}
+#| echo: false
+#| warning: false
+scleanliness_price = airbnb.groupby('review_scores_cleanliness')['price'].mean()
+scleanliness_price.plot(kind='bar', color='lightblue')
+plt.title('Average Price by Cleanliness Score')
+plt.xlabel('Cleanliness Score')
+plt.ylabel('Average Price')
+plt.xticks(rotation=0)
+plt.tight_layout()
+plt.show()
+```
+- Average price does not follow a clear linear trend with cleanliness score.
+- Interestingly, listings with very low cleanliness scores (e.g., 2 or 5) show higher average prices than those with mid-range scores, suggesting possible outliers or low sample size effects.
+
+```{python}
+#| echo: false
+#| warning: false
+slocation_price = airbnb.groupby('review_scores_location')['price'].mean()
+slocation_price.plot(kind='bar', color='lightblue')
+plt.title('Average Price by Location')
+plt.xlabel('Location')
+plt.ylabel('Average Price')
+plt.xticks(rotation=0)
+plt.tight_layout()
+plt.show()
+```
+- Average price generally increases with higher location scores, especially for listings rated 10, which have the highest average price.
+- Listings with lower location scores (such as 3 or below) tend to have significantly lower prices.
+
+```{python}
+#| echo: false
+#| warning: false
+svalue_price = airbnb.groupby('review_scores_value')['price'].mean()
+svalue_price.plot(kind='bar', color='lightblue')
+plt.title('Average Price by Value Score')
+plt.xlabel('Value Score')
+plt.ylabel('Average Price')
+plt.xticks(rotation=0)
+plt.tight_layout()
+plt.show()
+```
+- The average price is relatively stable across most value scores, typically ranging between $110 and $140.
+- However, listings with a value score of 3 show an unusually high average price, which may indicate the presence of outliers or data anomalies.
+
+### Model Building
+```{python}
+import pandas as pd
+import numpy as np
+import patsy
+import statsmodels.api as sm
+
+# Load dataset
+
+# Step 1: Select relevant variables
+relevant_vars = ['number_of_reviews', 'bedrooms', 'bathrooms', 'room_type', 'price']
+
+# Step 2: Drop rows with missing values in relevant variables
+airbnb_clean = airbnb.dropna(subset=relevant_vars).copy()
+
+# Step 3: Feature engineering
+# Apply log-transform to skewed variable `price`
+airbnb_clean['price_log'] = np.log1p(airbnb_clean['price'])  # log(1 + price) to handle zeros/skewness
+
+# Convert categorical variable to category type (for dummy encoding)
+airbnb_clean['room_type'] = airbnb_clean['room_type'].astype('category')
+
+# Step 4: Create design matrices using patsy
+# This builds the regression formula for Poisson regression
+y, X = patsy.dmatrices(
+    'number_of_reviews ~ bedrooms + bathrooms + price_log + C(room_type)',
+    data=airbnb_clean,
+    return_type='dataframe'
+)
+
+# Step 5: Fit Poisson regression model using statsmodels
+model = sm.GLM(y, X, family=sm.families.Poisson())
+results = model.fit()
+
+# Step 6: Output model summary
+print(results.summary())
+
+```
+
+
+### Coefficient Interpretation (Exponentiate to interpret effect size):  
+In Poisson regression, coefficients represent the log change in the expected count per one-unit increase in the predictor. To interpret in terms of percent change, use:
+$$
+\text{Percent Change} = (e^{\beta} - 1) \times 100
+$$
+Where $\beta$ is the coefficient from the model.
+
+
+### Poisson Regression Coefficients
+
+| Variable | Coefficient | P-value | Interpretation                        |
+|-----------------|---------|---------|---------------------------------------|
+| Intercept | 3.0093  | < 0.001 | Baseline: Entire home/apartment with 0 bedrooms and 0 bathrooms at price_log=0<br>Expected: $(e^{3.0093} \approx 20.26)$ |
+| Private room <br>(vs Entire home) | -0.1105 | < 0.001 | Private rooms have ~10.5% fewer reviews than entire homes/apartment $(e^{-0.1105} \approx 0.895)$ |
+| Shared room <br>(vs Entire home)  | -0.3607 | < 0.001 | Shared rooms have ~30.3% fewer reviews than entire homes/apartment $(e^{-0.3607} \approx 0.697)$ |
+| Bedrooms | +0.0871 | < 0.001 | Each additional bedroom increases reviews by ~9.1% $(e^{0.0871} \approx 1.091)$ |
+| Bathrooms | -0.1409 | < 0.001 | Each additional bathroom decreases reviews by ~13.1% $(e^{-0.1409} \approx 0.869)$ |
+| Price (log) | -0.0273 | < 0.001 | A 1% increase in price slightly reduces reviews by ~2.7% $(e^{-0.0273} \approx 0.973)$ |
+
+### Summary:
+-   Room type: Private and shared rooms tend to receive fewer reviews than entire apartments (statistically significant).
+-	Bedrooms: More bedrooms → more reviews (positive relationship).
+-	Bathrooms: More bathrooms → surprisingly associated with fewer reviews (possibly due to multicollinearity or price confounding).
+-	Price (log): Listings with higher prices (after log transformation) tend to receive slightly fewer reviews.
