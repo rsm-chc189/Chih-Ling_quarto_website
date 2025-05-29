@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Chih-Ling Chang">
-<meta name="dcterms.date" content="2025-05-07">
+<meta name="dcterms.date" content="2025-05-28">
 
 <title>Poisson Regression Examples – Lynn’s Quarto Website</title>
 <style>
@@ -227,7 +227,7 @@ window.Quarto = {
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">May 7, 2025</p>
+      <p class="date">May 28, 2025</p>
     </div>
   </div>
   
@@ -249,7 +249,7 @@ window.Quarto = {
 <section id="data-summary" class="level3">
 <h3 class="anchored" data-anchor-id="data-summary">Data Summary</h3>
 <p>Comparison of histograms and means of number of patents by customer status</p>
-<div id="6654439d" class="cell" data-execution_count="2">
+<div id="79bff28e" class="cell" data-execution_count="2">
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
@@ -264,7 +264,7 @@ window.Quarto = {
 </ul>
 <p>Blueprinty customers are not selected at random. It may be important to account for systematic differences in the age and regional location of customers vs non-customers.</p>
 <p>Comparison of regions and ages by customer status</p>
-<div id="5947dc36" class="cell" data-execution_count="3">
+<div id="c4d2f741" class="cell" data-execution_count="3">
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
@@ -277,7 +277,7 @@ window.Quarto = {
 <li>Most customers come from the Northeast region, while non-customers are more evenly distributed across all regions.</li>
 <li>The Midwest, South, and Southwest regions are underrepresented among Blueprinty customers compared to non-customers.</li>
 </ul>
-<div id="7490ca0b" class="cell" data-execution_count="4">
+<div id="d8685abf" class="cell" data-execution_count="4">
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
@@ -299,7 +299,7 @@ window.Quarto = {
 \log L(\lambda) = \sum_{i=1}^{n} \left( -\lambda + Y_i \log(\lambda) - \log(Y_i!) \right)
 \]</span></p>
 <p>Code the likelihood (or log-likelihood) function for the Poisson model. This is a function of lambda and Y. For example:</p>
-<div id="c25736f6" class="cell" data-execution_count="5">
+<div id="cd017c88" class="cell" data-execution_count="5">
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> scipy.special <span class="im">import</span> gammaln</span>
@@ -319,7 +319,7 @@ window.Quarto = {
 </div>
 </div>
 <p>Use my function to plot lambda on the horizontal axis and the likelihood (or log-likelihood) on the vertical axis for a range of lambdas (use the observed number of patents as the input for Y)._</p>
-<div id="d90948bb" class="cell" data-execution_count="6">
+<div id="1c538432" class="cell" data-execution_count="6">
 <div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Create a range of lambda values</span></span>
@@ -351,7 +351,7 @@ window.Quarto = {
 </div>
 </div>
 <p>Take the first derivative of your likelihood or log-likelihood, set it equal to zero and solve for lambda. We find lambda_mle is Ybar, which “feels right” because the mean of a Poisson distribution is lambda.</p>
-<div id="4d908b21" class="cell" data-execution_count="7">
+<div id="acaf2f64" class="cell" data-execution_count="7">
 <div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Compute theoretical MLE as the sample mean</span></span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>lambda_mle_theory <span class="op">=</span> np.mean(Y_data)</span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Theoretical MLE λ = mean(Y) = </span><span class="sc">{</span>lambda_mle_theory<span class="sc">:.4f}</span><span class="ss">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
@@ -360,7 +360,7 @@ window.Quarto = {
 </div>
 </div>
 <p>Find the MLE by optimizing my likelihood function with sp.optimize() in Python.</p>
-<div id="18de0fff" class="cell" data-execution_count="8">
+<div id="4b9f0d5e" class="cell" data-execution_count="8">
 <div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> scipy.optimize <span class="im">import</span> minimize_scalar</span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Find λ that maximizes the log-likelihood using numerical optimization</span></span>
@@ -381,7 +381,7 @@ window.Quarto = {
 <h3 class="anchored" data-anchor-id="estimation-of-poisson-regression-model">Estimation of Poisson Regression Model</h3>
 <p>Next, we extend our simple Poisson model to a Poisson Regression Model such that <span class="math inline">\(Y_i = \text{Poisson}(\lambda_i)\)</span> where <span class="math inline">\(\lambda_i = \exp(X_i'\beta)\)</span>. The interpretation is that the success rate of patent awards is not constant across all firms (<span class="math inline">\(\lambda\)</span>) but rather is a function of firm characteristics <span class="math inline">\(X_i\)</span>. Specifically, we will use the covariates age, age squared, region, and whether the firm is a customer of Blueprinty.</p>
 <p>Update my likelihood or log-likelihood function with an additional argument to take in a covariate matrix X. Also change the parameter of the model from lambda to the beta vector. In this model, lambda must be a positive number, so we choose the inverse link function g_inv() to be exp() so that_ <span class="math inline">\(\lambda_i = e^{X_i'\beta}\)</span>. _For example:</p>
-<div id="ad4a4aaa" class="cell" data-execution_count="10">
+<div id="82ea61d9" class="cell" data-execution_count="10">
 <div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Define Poisson log-likelihood function with stable exp()</span></span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> poisson_regression_loglik(beta, Y, X):</span>
 <span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    lin_pred <span class="op">=</span> X <span class="op">@</span> beta</span>
@@ -390,7 +390,7 @@ window.Quarto = {
 <span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="op">-</span>np.<span class="bu">sum</span>(Y <span class="op">*</span> lin_pred <span class="op">-</span> lambda_i <span class="op">-</span> gammaln(Y <span class="op">+</span> <span class="dv">1</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>Use my function along with Python’s sp.optimize() to find the MLE vector and the Hessian of the Poisson model with covariates. Specifically, the first column of X should be all 1’s to enable a constant term in the model, and the subsequent columns should be age, age squared, binary variables for all but one of the regions, and the binary customer variable. Use the Hessian to find standard errors of the beta parameter estimates and present a table of coefficients and standard errors.</p>
-<div id="9e41f859" class="cell" data-execution_count="11">
+<div id="093c4a18" class="cell" data-execution_count="11">
 <div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Initial guess (zeros)</span></span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>beta_init <span class="op">=</span> np.zeros(X.shape[<span class="dv">1</span>])</span>
 <span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -440,7 +440,7 @@ Desired error not necessarily achieved due to precision loss.
 </div>
 </div>
 <p>Check my results using Python sm.GLM() function.</p>
-<div id="7d9cc74b" class="cell" data-execution_count="12">
+<div id="ec580c24" class="cell" data-execution_count="12">
 <div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> statsmodels.api <span class="im">as</span> sm</span>
 <span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Fit Poisson regression using statsmodels GLM</span></span>
@@ -457,8 +457,8 @@ Model:                            GLM   Df Residuals:                     1492
 Model Family:                 Poisson   Df Model:                            7
 Link Function:                    Log   Scale:                          1.0000
 Method:                          IRLS   Log-Likelihood:                -3258.1
-Date:                Wed, 07 May 2025   Deviance:                       2143.3
-Time:                        22:29:27   Pearson chi2:                 2.07e+03
+Date:                Wed, 28 May 2025   Deviance:                       2143.3
+Time:                        15:50:02   Pearson chi2:                 2.07e+03
 No. Iterations:                     5   Pseudo R-squ. (CS):             0.1360
 Covariance Type:            nonrobust                                         
 ==============================================================================
@@ -511,7 +511,7 @@ x7             0.2076      0.031      6.719      0.000       0.147       0.268
 <li>Regional differences are minor and do not substantially influence model predictions.</li>
 </ul>
 <p>Because the beta coefficients are not directly interpretable, it may help to create two fake datasets: X_0 and X_1 where X_0 is the X data but with iscustomer=0 for every observation and X_1 is the X data but with iscustomer=1 for every observation. Then, use X_0 and my fitted model to get the vector of predicted number of patents (y_pred_0) for every firm in the dataset, and use X_1 to get Y_pred_1 for every firm. Then subtract y_pred_1 minus y_pred_0 and take the average of that vector of differences.</p>
-<div id="7eea35b4" class="cell" data-execution_count="13">
+<div id="f739eda2" class="cell" data-execution_count="13">
 <div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Copy design matrix</span></span>
 <span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>X_0 <span class="op">=</span> X.copy()</span>
 <span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>X_1 <span class="op">=</span> X.copy()</span>
@@ -574,7 +574,7 @@ Variable Definitions
 </section>
 <section id="explorary-data-analysis" class="level3">
 <h3 class="anchored" data-anchor-id="explorary-data-analysis">Explorary Data Analysis</h3>
-<div id="2cceda74" class="cell" data-execution_count="15">
+<div id="32829851" class="cell" data-execution_count="15">
 <div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>airbnb.info()</span>
 <span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>airbnb.describe()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
@@ -733,7 +733,7 @@ memory usage: 4.3+ MB</code></pre>
 </div>
 <section id="variables-distribution" class="level4">
 <h4 class="anchored" data-anchor-id="variables-distribution">Variables Distribution</h4>
-<div id="7fdd1324" class="cell" data-execution_count="16">
+<div id="caee4633" class="cell" data-execution_count="16">
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
@@ -746,7 +746,7 @@ memory usage: 4.3+ MB</code></pre>
 <li>The majority of listings are either entire homes/apartments or private rooms, with nearly equal counts.</li>
 <li>Shared rooms are much less common, accounting for only a small fraction of the total listings.</li>
 </ul>
-<div id="b71f73b9" class="cell" data-execution_count="17">
+<div id="93ff1a73" class="cell" data-execution_count="17">
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
@@ -759,7 +759,7 @@ memory usage: 4.3+ MB</code></pre>
 <li>The vast majority of listings have exactly one bathroom, with over 34,000 such cases.</li>
 <li>Listings with more than two bathrooms are rare, and those with zero or fractional bathrooms also occur infrequently.</li>
 </ul>
-<div id="185f94ff" class="cell" data-execution_count="18">
+<div id="dcaf32a5" class="cell" data-execution_count="18">
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
@@ -772,7 +772,7 @@ memory usage: 4.3+ MB</code></pre>
 <li>The majority of listings have exactly one bedroom, with over 30,000 such entries.</li>
 <li>Listings with three or more bedrooms are relatively rare, and those with zero bedrooms likely represent studio or shared space accommodations.</li>
 </ul>
-<div id="a054f61b" class="cell" data-execution_count="19">
+<div id="1650e914" class="cell" data-execution_count="19">
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
@@ -785,7 +785,7 @@ memory usage: 4.3+ MB</code></pre>
 <li>Most listings have high cleanliness scores, with the majority rated 9 or 10.</li>
 <li>Very few listings fall below a cleanliness score of 6, indicating generally high standards across the dataset.</li>
 </ul>
-<div id="1cc3c2e5" class="cell" data-execution_count="20">
+<div id="dc75c2f9" class="cell" data-execution_count="20">
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
@@ -798,7 +798,7 @@ memory usage: 4.3+ MB</code></pre>
 <li>Locaion share similar trend with cleanliness. The vast majority of listings have high location ratings, with most scoring 9 or 10.</li>
 <li>Listings rated below 7 are very rare, indicating that location is generally perceived positively across the dataset.</li>
 </ul>
-<div id="3ad91fa8" class="cell" data-execution_count="21">
+<div id="1ecd06df" class="cell" data-execution_count="21">
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
@@ -811,7 +811,7 @@ memory usage: 4.3+ MB</code></pre>
 <li>Value also share similar trend with location and cleanliness. Most of the listings have high value score, with the majority scoring 9 or 10.</li>
 <li>Listings rated below 7 are very rare, indicating that value is generally perceived positively across the dataset.</li>
 </ul>
-<div id="a9712ebd" class="cell" data-execution_count="22">
+<div id="bdb4ae23" class="cell" data-execution_count="22">
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
@@ -827,7 +827,7 @@ memory usage: 4.3+ MB</code></pre>
 </section>
 <section id="price-distribution-by-different-variables" class="level4">
 <h4 class="anchored" data-anchor-id="price-distribution-by-different-variables">Price Distribution by Different Variables</h4>
-<div id="a90f21a9" class="cell" data-execution_count="23">
+<div id="5cdd427d" class="cell" data-execution_count="23">
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
@@ -840,7 +840,7 @@ memory usage: 4.3+ MB</code></pre>
 <li>Entire home/apartment listings have the highest average price at around $205.</li>
 <li>Private rooms and shared rooms are significantly more affordable, with average prices of approximately $87 and $78 respectively.</li>
 </ul>
-<div id="9359b914" class="cell" data-execution_count="24">
+<div id="90a5cde2" class="cell" data-execution_count="24">
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
@@ -853,7 +853,7 @@ memory usage: 4.3+ MB</code></pre>
 <li>Average price tends to increase with the number of bathrooms, showing a clear upward trend.</li>
 <li>Listings with 6 or more bathrooms are priced significantly higher, with some reaching over $5,000 on average.</li>
 </ul>
-<div id="72963d44" class="cell" data-execution_count="25">
+<div id="f6138dd7" class="cell" data-execution_count="25">
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
@@ -866,7 +866,7 @@ memory usage: 4.3+ MB</code></pre>
 <li>Average price generally increases with the number of bedrooms, peaking at 8 bedrooms with an average price around $1,200.</li>
 <li>After 8 bedrooms, the average price fluctuates and slightly declines, possibly due to fewer listings or outliers in those categories.</li>
 </ul>
-<div id="cc8e15c6" class="cell" data-execution_count="26">
+<div id="af133d07" class="cell" data-execution_count="26">
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
@@ -879,7 +879,7 @@ memory usage: 4.3+ MB</code></pre>
 <li>Average price does not follow a clear linear trend with cleanliness score.</li>
 <li>Interestingly, listings with very low cleanliness scores (e.g., 2 or 5) show higher average prices than those with mid-range scores, suggesting possible outliers or low sample size effects.</li>
 </ul>
-<div id="df425ad0" class="cell" data-execution_count="27">
+<div id="14b49c61" class="cell" data-execution_count="27">
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
@@ -892,7 +892,7 @@ memory usage: 4.3+ MB</code></pre>
 <li>Average price generally increases with higher location scores, especially for listings rated 10, which have the highest average price.</li>
 <li>Listings with lower location scores (such as 3 or below) tend to have significantly lower prices.</li>
 </ul>
-<div id="0c5befcf" class="cell" data-execution_count="28">
+<div id="37d712ee" class="cell" data-execution_count="28">
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
@@ -909,7 +909,7 @@ memory usage: 4.3+ MB</code></pre>
 </section>
 <section id="model-building" class="level3">
 <h3 class="anchored" data-anchor-id="model-building">Model Building</h3>
-<div id="d769c610" class="cell" data-execution_count="29">
+<div id="e15ae457" class="cell" data-execution_count="29">
 <div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
 <span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
 <span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> patsy</span>
@@ -952,8 +952,8 @@ Model:                            GLM   Df Residuals:                    40389
 Model Family:                 Poisson   Df Model:                            5
 Link Function:                    Log   Scale:                          1.0000
 Method:                          IRLS   Log-Likelihood:            -7.2270e+05
-Date:                Wed, 07 May 2025   Deviance:                   1.3222e+06
-Time:                        22:29:29   Pearson chi2:                 2.16e+06
+Date:                Wed, 28 May 2025   Deviance:                   1.3222e+06
+Time:                        15:50:04   Pearson chi2:                 2.16e+06
 No. Iterations:                     6   Pseudo R-squ. (CS):             0.1308
 Covariance Type:            nonrobust                                         
 ================================================================================================
