@@ -1,0 +1,189 @@
+---
+title: "K-Means & K Nearest Neighbors"
+author: "Chih-Ling Chang"
+date: today
+---
+## 1. K-Means
+
+First, we display the distribution of the variables `bill_length_mm` and `flipper_length_mm` from the Palmer Penguins dataset using a scatter plot.
+```{python}
+#| echo: false
+#| warning: false
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.cluster import KMeans
+from sklearn.metrics import silhouette_score
+from matplotlib import cm
+
+# Step 1: Load data and clean it
+penguins_df = pd.read_csv("palmer_penguins.csv")
+penguins_df = penguins_df[['bill_length_mm', 'flipper_length_mm']].dropna()
+X = penguins_df.values
+
+# Step 2: Visualize raw data
+plt.scatter(X[:, 0], X[:, 1], c='skyblue')
+plt.xlabel("Bill Length (mm)")
+plt.ylabel("Flipper Length (mm)")
+plt.title("Raw Data: Palmer Penguins")
+plt.show()
+```
+
+Then, we write a function to manually implement a simple K-means algorithm, using K=3 as an example. Each plot demonstrates how the algorithm works by gradually adjusting the centroids for each cluster until it finds the optimal solution.
+
+```{python}
+def kmeans_custom(X, k=3, max_iters=10, random_state=42):
+    np.random.seed(random_state)
+    # Randomly initialize centroids
+    centroids = X[np.random.choice(X.shape[0], k, replace=False)]
+    for iteration in range(max_iters):
+        # Assign clusters
+        distances = np.linalg.norm(X[:, np.newaxis] - centroids, axis=2)
+        labels = np.argmin(distances, axis=1)
+
+        # Plot clusters and centroids
+        plt.figure()
+        for i in range(k):
+            cluster_points = X[labels == i]
+            plt.scatter(cluster_points[:, 0], cluster_points[:, 1], label=f"Cluster {i}")
+        plt.scatter(centroids[:, 0], centroids[:, 1], color='black', marker='x', s=100, label='Centroids')
+        plt.xlabel("Bill Length (mm)")
+        plt.ylabel("Flipper Length (mm)")
+        plt.title(f"K-Means Iteration {iteration+1}")
+        plt.legend()
+        plt.show()
+
+        # Recalculate centroids
+        new_centroids = np.array([X[labels == i].mean(axis=0) for i in range(k)])
+        if np.allclose(centroids, new_centroids):
+            break
+        centroids = new_centroids
+    return labels, centroids
+```
+
+```{python}
+#| echo: false
+#| warning: false
+labels_custom, centroids_custom = kmeans_custom(X, k=3)
+```
+
+Next, we use the buit-in KMeans from scikit-learn to validate and compare the outcome.
+```{python}
+kmeans_sklearn = KMeans(n_clusters=3, n_init=10, random_state=42)
+labels_sklearn = kmeans_sklearn.fit_predict(X)
+
+plt.scatter(X[:, 0], X[:, 1], c=labels_sklearn, cmap='viridis')
+plt.xlabel("Bill Length (mm)")
+plt.ylabel("Flipper Length (mm)")
+plt.title("Sklearn KMeans Clustering (K=3)")
+plt.show()
+```
+
+Finally, we evaluate for K=2 to 7 using WCSS and Silhouette Score
+```{python}
+wcss = []
+silhouette = []
+k_values = range(2, 8)
+
+for k in k_values:
+    model = KMeans(n_clusters=k, n_init=10, random_state=42)
+    y_k = model.fit_predict(X)
+    wcss.append(model.inertia_)
+    silhouette.append(silhouette_score(X, y_k))
+
+plt.figure(figsize=(12, 5))
+plt.subplot(1, 2, 1)
+plt.plot(k_values, wcss, marker='o')
+plt.title("Within-Cluster Sum of Squares")
+plt.xlabel("k")
+plt.ylabel("WCSS")
+
+plt.subplot(1, 2, 2)
+plt.plot(k_values, silhouette, marker='o')
+plt.title("Silhouette Score")
+plt.xlabel("k")
+plt.ylabel("Score")
+plt.tight_layout()
+plt.show()
+```
+#### Summary
+- The plots show how Within-Cluster Sum of Squares (WCSS) decreases as k increases (as expected), while the Silhouette Score peaks around k = 2 or 3, suggesting one of those is likely the “best” number of clusters.
+- This analysis helps determine an appropriate cluster count without ground truth labels.
+
+
+## 2. K Nearest Neighbors
+```{python}
+#| echo: false
+#| warning: false
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.metrics import accuracy_score
+```
+First, we generate a synthetic dataset for the k-nearest neighbors algorithm and do visualization. The code generates a dataset with two features, `x1` and `x2`, and a binary outcome variable `y` that is determined by whether `x2` is above or below a wiggly boundary defined by a sin function.
+```{python}
+# Step 1: Generate training data
+np.random.seed(42)
+n = 100
+x1_train = np.random.uniform(-3, 3, n)
+x2_train = np.random.uniform(-3, 3, n)
+boundary_train = np.sin(4 * x1_train) + x1_train
+y_train = (x2_train > boundary_train).astype(int)
+```
+
+```{python}
+# Visualize training data
+plt.figure()
+plt.scatter(x1_train, x2_train, c=y_train, cmap='bwr', edgecolor='k')
+plt.title("Training Data with Wiggly Boundary")
+plt.xlabel("x1")
+plt.ylabel("x2")
+plt.grid(True)
+plt.show()
+```
+
+```{python}
+# Step 2: Generate test data
+np.random.seed(2025)
+x1_test = np.random.uniform(-3, 3, n)
+x2_test = np.random.uniform(-3, 3, n)
+boundary_test = np.sin(4 * x1_test) + x1_test
+y_test = (x2_test > boundary_test).astype(int)
+
+X_train = np.column_stack((x1_train, x2_train))
+X_test = np.column_stack((x1_test, x2_test))
+```
+
+After generating the training and testing data, we implement and evaluate KNN from k=1 to 30. 
+```{python}
+# Step 3: Implement and evaluate KNN from k=1 to 30
+accuracy_scores = []
+
+for k in range(1, 31):
+    model = KNeighborsClassifier(n_neighbors=k)
+    model.fit(X_train, y_train)
+    y_pred = model.predict(X_test)
+    acc = accuracy_score(y_test, y_pred)
+    accuracy_scores.append(acc)
+```
+Then, we plot the results, where the horizontal axis is 1-30 and the vertical axis is the percentage of correctly-classified points.
+
+```{python}
+# Step 4: Plot accuracy vs. k
+plt.figure(figsize=(8, 5))
+plt.plot(range(1, 31), accuracy_scores, marker='o')
+plt.title("KNN Accuracy on Test Data")
+plt.xlabel("k (Number of Neighbors)")
+plt.ylabel("Accuracy")
+plt.grid(True)
+plt.show()
+```
+#### Summary
+From the plot of KNN accuracy vs. k, we observe:
+
+- Accuracy starts relatively high at low values of k (especially k = 1 to k = 5).
+- Peak performance occurs around k = 5 to k = 10, indicating this is a good range for balancing bias and variance.
+- As k increases beyond 15–20, accuracy plateaus or slightly drops, reflecting that large k may oversmooth the decision boundary.
+
+Overall, this result shows the importance of tuning k and that moderate values (5–10) yield the best generalization for this dataset.
